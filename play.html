@@ -1,0 +1,464 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="referrer" content="no-referrer">
+  
+  <title>خوض الاختبار والنتائج 🐾</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@500;700;900&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              blue: '#3b82f6',
+              sky: '#e0f2fe',
+              brightBlue: '#0088ff',
+              pink: '#ff6b8b',
+              yellow: '#facc15',
+              dark: '#1e293b'
+            }
+          },
+          fontFamily: {
+            cairo: ['Cairo', 'sans-serif'],
+            tajawal: ['Tajawal', 'sans-serif']
+          },
+          boxShadow: {
+            '3d': '0px 6px 0px 0px #1d4ed8',
+            '3d-pink': '0px 6px 0px 0px #be185d',
+            'note': '3px 5px 15px rgba(0,0,0,0.08)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Cairo', 'Tajawal', sans-serif;
+      background: linear-gradient(180deg, #dbeafe 0%, #eff6ff 50%, #e0f2fe 100%);
+      min-height: 100vh;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
+    }
+    .bg-clouds {
+      background-image: 
+        radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 25%),
+        radial-gradient(circle at 90% 20%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 30%),
+        radial-gradient(circle at 50% 85%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 35%);
+    }
+    .sticky-note {
+      background: #ffffff;
+      border-radius: 28px;
+      position: relative;
+      border: 3px solid #bfdbfe;
+    }
+    .tape-pink {
+      position: absolute;
+      top: -14px;
+      right: 35px;
+      width: 90px;
+      height: 28px;
+      background: rgba(255, 110, 140, 0.65);
+      transform: rotate(-4deg);
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      z-index: 10;
+    }
+    .speech-bubble {
+      position: relative;
+      background: #ffffff;
+      border-radius: 24px;
+      border: 3px solid #3b82f6;
+      box-shadow: 0 8px 20px rgba(59, 130, 246, 0.15);
+    }
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(1deg); }
+    }
+    .animate-float { animation: float 4s ease-in-out infinite; }
+    .active-btn:active { transform: translateY(4px); }
+    .angry-border { border-color: #ef4444 !important; background-color: #fef2f2 !important; }
+  </style>
+</head>
+
+<body class="bg-clouds flex justify-center items-center min-h-screen p-2 sm:p-4 text-slate-800" x-data="playQuizApp()" x-init="initData()">
+
+  <!-- Background Decorative Icons -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    <i class="fa-solid fa-star text-yellow-300 text-2xl absolute top-6 right-8 animate-pulse"></i>
+    <i class="fa-solid fa-cloud text-white/80 text-5xl absolute top-12 left-6 animate-float"></i>
+    <i class="fa-solid fa-heart text-pink-300 text-xl absolute top-1/3 left-4 opacity-70"></i>
+    <i class="fa-solid fa-paw text-blue-200 text-3xl absolute bottom-10 right-8 rotate-12"></i>
+  </div>
+
+  <!-- Main Container -->
+  <main class="w-full max-w-md bg-sky-50/80 backdrop-blur-md rounded-[36px] border-4 border-white shadow-2xl p-4 sm:p-6 relative z-10 my-auto flex flex-col justify-between min-h-[620px]">
+
+    <!-- 🔄 LOADING -->
+    <div x-show="loading" class="my-auto text-center py-10">
+      <i class="fa-solid fa-spinner fa-spin text-5xl text-blue-500 mb-4"></i>
+      <h2 class="text-lg font-extrabold text-slate-700">جاري تحميل الاختبار...</h2>
+    </div>
+
+    <!-- ❌ ERROR -->
+    <div x-show="errorMessage && !loading" x-cloak class="my-auto text-center py-10">
+      <i class="fa-solid fa-face-frown text-red-500 text-6xl mb-3 animate-bounce"></i>
+      <h2 class="text-xl font-black text-slate-800 mb-2">عذراً! حدث خطأ</h2>
+      <p class="text-xs text-red-500 font-bold bg-red-50 p-3 rounded-2xl border" x-text="errorMessage"></p>
+    </div>
+
+    <!-- 🎮 MAIN APP -->
+    <div x-show="!loading && !errorMessage" x-cloak class="flex flex-col justify-between h-full flex-1">
+
+      <!-- Header -->
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <div class="speech-bubble p-3 sm:p-4 flex-1 ml-2 relative">
+            <h1 class="text-base sm:text-lg font-extrabold text-slate-800 text-center leading-snug">
+              اختبار <span class="text-pink-500 underline decoration-yellow-300 decoration-wavy" x-text="owner.name"></span> 🐾
+            </h1>
+          </div>
+          <div class="relative w-16 h-16 flex-shrink-0 animate-float">
+            <div class="w-16 h-16 bg-white rounded-full border-3 border-blue-400 p-0.5 shadow-md flex items-center justify-center overflow-hidden">
+              <template x-if="owner.photoUrl"><img :src="owner.photoUrl" class="w-full h-full object-cover rounded-full"></template>
+              <template x-if="!owner.photoUrl"><span x-text="owner.gender === 'بنت' ? '👧' : '👦'" class="text-2xl"></span></template>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 🏁 WELCOME -->
+      <div x-show="step === 'welcome'" x-transition class="py-2">
+        <div class="sticky-note p-5 my-2 shadow-note relative">
+          <div class="tape-pink"></div>
+          
+          <div class="text-center mb-3">
+            <span class="bg-yellow-300 text-slate-900 font-extrabold px-3 py-1 rounded-md text-xs inline-block transform -rotate-1 mb-1">
+              مرحباً بك! 👋
+            </span>
+            <p class="text-xs font-bold text-slate-600">أدخل بياناتك للانضمام لاختبار <span class="text-blue-600 font-extrabold" x-text="owner.name"></span></p>
+          </div>
+
+          <div class="space-y-3">
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1"><i class="fa-solid fa-signature text-blue-500 ml-1"></i> اسمك الكامل: *</label>
+              <input type="text" x-model="player.name" placeholder="اكتب اسمك..." :class="{'angry-border': submitted && !player.name.trim()}" class="w-full bg-slate-50 border-2 border-blue-200 rounded-2xl px-4 py-2 font-bold text-slate-800 text-sm outline-none"/>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1"><i class="fa-solid fa-venus-mars text-blue-500 ml-1"></i> النوع: *</label>
+              <div class="grid grid-cols-2 gap-2">
+                <button type="button" @click="player.gender = 'ولد'" :class="player.gender === 'ولد' ? 'bg-blue-500 text-white' : 'bg-slate-50 text-slate-600'" class="py-2 rounded-xl font-extrabold text-xs border-2 flex items-center justify-center gap-1">ولد 👦</button>
+                <button type="button" @click="player.gender = 'بنت'" :class="player.gender === 'بنت' ? 'bg-pink-500 text-white' : 'bg-slate-50 text-slate-600'" class="py-2 rounded-xl font-extrabold text-xs border-2 flex items-center justify-center gap-1">بنت 👧</button>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1"><i class="fa-solid fa-camera text-blue-500 ml-1"></i> صورتك الشخصية: <span class="text-slate-400 font-normal">(اختياري)</span></label>
+              <div class="flex items-center gap-3 bg-slate-50 p-1.5 border-2 border-blue-200 rounded-2xl">
+                <div class="w-10 h-10 bg-slate-200 rounded-xl overflow-hidden flex items-center justify-center border text-slate-400 flex-shrink-0">
+                  <template x-if="player.photoPreview"><img :src="player.photoPreview" class="w-full h-full object-cover"></template>
+                  <template x-if="!player.photoPreview"><i class="fa-solid fa-user"></i></template>
+                </div>
+                <input type="file" @change="handlePlayerPhoto($event)" accept="image/*" class="text-xs text-slate-500 file:py-1 file:px-2 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700"/>
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-bold text-slate-600 mb-1"><i class="fa-solid fa-message text-blue-500 ml-1"></i> رسالة لصاحب الامتحان: <span class="text-slate-400 font-normal">(اختياري)</span></label>
+              <textarea x-model="player.message" rows="2" placeholder="اكتب كلمة لطيفة لصاحب الاختبار..." class="w-full bg-slate-50 border-2 border-blue-200 rounded-2xl p-2.5 font-bold text-xs text-slate-800 outline-none resize-none"></textarea>
+            </div>
+          </div>
+        </div>
+
+        <button @click="startQuiz()" class="w-full bg-brand-brightBlue text-white font-black text-lg py-3.5 rounded-2xl shadow-3d active-btn hover:bg-blue-600 mt-3"><span>ابدأ الاختبار الآن 🚀</span></button>
+      </div>
+
+      <!-- 📝 PLAYING -->
+      <div x-show="step === 'playing'" x-transition class="py-2 flex-1 flex flex-col justify-between">
+        <div class="bg-white border-2 border-blue-300 rounded-2xl p-2.5 mb-2 flex items-center justify-between">
+          <span class="text-xs font-black text-slate-700">السؤال <span class="text-blue-600" x-text="currentQIndex + 1"></span> من <span x-text="questions.length"></span></span>
+          <div class="w-32 bg-slate-100 rounded-full h-2.5 overflow-hidden border">
+            <div class="bg-blue-500 h-2.5 rounded-full transition-all duration-300" :style="'width: ' + (((currentQIndex + 1) / questions.length) * 100) + '%'"></div>
+          </div>
+        </div>
+
+        <div class="sticky-note p-4 my-2 shadow-note relative flex-1 flex flex-col justify-between">
+          <div class="tape-pink"></div>
+          <div>
+            <div class="mb-3">
+              <span class="text-xs font-black text-blue-500 block mb-1">السؤال:</span>
+              <p class="text-sm font-extrabold text-slate-800 leading-relaxed whitespace-pre-line" x-text="currentQuestion.text"></p>
+            </div>
+            <template x-if="currentQuestion.photoUrl"><img :src="currentQuestion.photoUrl" class="w-full max-h-48 object-cover rounded-2xl border-2 border-blue-200 mb-2"></template>
+          </div>
+
+          <div class="space-y-2 my-2">
+            <template x-for="(opt, idx) in currentQuestion.options" :key="idx">
+              <button @click="selectOption(opt)" :class="selectedOption === opt ? 'bg-blue-500 text-white border-blue-600 scale-[1.02]' : 'bg-slate-50 text-slate-800 border-slate-200 hover:bg-blue-50'" class="w-full p-3 rounded-2xl border-2 text-right font-extrabold text-xs transition-all flex items-center justify-between">
+                <div class="flex items-center gap-2">
+                  <template x-if="opt.photoUrl"><img :src="opt.photoUrl" class="w-10 h-10 rounded-xl object-cover border"></template>
+                  <span x-text="opt.text"></span>
+                </div>
+                <i :class="selectedOption === opt ? 'fa-solid fa-circle-check text-yellow-300' : 'fa-regular fa-circle text-slate-300'"></i>
+              </button>
+            </template>
+          </div>
+        </div>
+
+        <button @click="nextQuestion()" :disabled="!selectedOption || sendingResult" class="w-full bg-brand-brightBlue text-white font-black text-lg py-3 rounded-2xl shadow-3d active-btn mt-2">
+          <span x-text="sendingResult ? 'جاري الحفظ...' : (currentQIndex < questions.length - 1 ? 'السؤال التالي ⬅️' : 'عرض النتيجة 🎯')"></span>
+        </button>
+      </div>
+
+      <!-- 🎉 RESULT & LEADERBOARD -->
+      <div x-show="step === 'result'" x-transition class="py-2 my-auto">
+        <div class="sticky-note p-5 shadow-note relative text-center mb-4">
+          <div class="tape-pink"></div>
+          <i class="fa-solid fa-trophy text-yellow-400 text-5xl mb-2 animate-bounce"></i>
+          <h2 class="text-lg font-black text-slate-800">أحسنت يا <span class="text-blue-600" x-text="player.name"></span>!</h2>
+          <div class="grid grid-cols-2 gap-2 my-2">
+            <div class="bg-pink-50 border-2 border-pink-200 rounded-2xl p-2 text-center">
+              <span class="text-[10px] font-bold text-slate-500 block">النسبة:</span>
+              <span class="text-2xl font-black text-pink-600" x-text="percentage + '%'"></span>
+            </div>
+            <div class="bg-blue-50 border-2 border-blue-200 rounded-2xl p-2 text-center">
+              <span class="text-[10px] font-bold text-slate-500 block">الدرجة:</span>
+              <span class="text-2xl font-black text-blue-600" x-text="correctAnswersCount + ' / ' + questions.length"></span>
+            </div>
+          </div>
+        </div>
+
+        <!-- 📊 لوحة المتصدرين والرسائل -->
+        <div class="sticky-note p-4 shadow-note relative">
+          <div class="flex items-center justify-between pb-3 border-b mb-3">
+            <h3 class="font-extrabold text-xs text-slate-800 flex items-center gap-1.5"><i class="fa-solid fa-chart-simple text-blue-500"></i><span>نتائج المشاركين</span></h3>
+            <button @click="toggleAdminModal()" class="w-8 h-8 rounded-xl bg-slate-100 hover:bg-yellow-200 text-slate-600 flex items-center justify-center border"><i class="fa-solid fa-gear"></i></button>
+          </div>
+
+          <template x-if="owner.accountStatus === 'الناس كلها تشوف النتائج' || isAdmin">
+            <div class="space-y-2 max-h-60 overflow-y-auto pr-1">
+              <template x-for="(user, idx) in leaderboard" :key="user.ID_U">
+                <div class="bg-slate-50 border-2 border-slate-200 rounded-2xl p-2.5 space-y-1.5">
+                  <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-2">
+                      <span class="w-6 h-6 rounded-full bg-amber-400 text-amber-950 text-xs font-black flex items-center justify-center" x-text="idx + 1"></span>
+                      <div class="w-8 h-8 rounded-full bg-slate-200 overflow-hidden flex items-center justify-center border flex-shrink-0">
+                        <template x-if="user.صورة_الشخص"><img :src="user.صورة_الشخص" class="w-full h-full object-cover"></template>
+                        <template x-if="!user.صورة_الشخص"><span x-text="user.النوع === 'بنت' ? '👧' : '👦'"></span></template>
+                      </div>
+                      <div>
+                        <div class="font-extrabold text-xs text-slate-800" x-text="user.الاسم"></div>
+                        <span class="text-[10px] text-slate-400 font-bold" x-text="'الدرجة: ' + user.الدرجة"></span>
+                      </div>
+                    </div>
+                    <div class="flex items-center gap-2">
+                      <span class="bg-blue-100 text-blue-700 px-2 py-1 rounded-xl text-xs font-black" x-text="user.النسبة"></span>
+                      <button x-show="isAdmin" @click="deleteUserResult(user.ID_U)" class="w-7 h-7 bg-red-100 text-red-600 rounded-xl flex items-center justify-center text-xs"><i class="fa-solid fa-trash"></i></button>
+                    </div>
+                  </div>
+                  <template x-if="user.رسالة_الممتحن">
+                    <div class="bg-amber-50 border border-amber-200 rounded-xl p-2 text-[11px] font-bold text-amber-900 mt-1">
+                      💬 <span x-text="user.رسالة_الممتحن"></span>
+                    </div>
+                  </template>
+                </div>
+              </template>
+              <template x-if="leaderboard.length === 0"><p class="text-xs text-slate-400 text-center py-2">لا توجد نتائج مسجلة!</p></template>
+            </div>
+          </template>
+
+          <template x-if="owner.accountStatus !== 'الناس كلها تشوف النتائج' && !isAdmin">
+            <div class="text-center py-4 bg-amber-50 border rounded-2xl">
+              <i class="fa-solid fa-lock text-amber-500 text-2xl mb-1 block"></i>
+              <p class="text-xs font-extrabold text-slate-700">عدد المشاركين: <span class="text-pink-600 font-black" x-text="leaderboard.length"></span></p>
+            </div>
+          </template>
+        </div>
+
+        <a href="index.html" class="w-full bg-emerald-500 hover:bg-emerald-600 text-white font-black text-base py-3.5 rounded-2xl shadow-3d-green active-btn transition-all flex items-center justify-center gap-2 mt-4 block text-center">
+          <i class="fa-solid fa-wand-magic-sparkles"></i><span>أنشئ اختبارك الخاص الآن 🚀</span>
+        </a>
+      </div>
+
+      <!-- MODAL ADMIN -->
+      <div x-show="showAdminModal" x-cloak class="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+        <div class="bg-white border-4 border-blue-300 rounded-3xl p-5 w-full max-w-xs shadow-2xl relative">
+          <button @click="showAdminModal = false" class="absolute top-3 left-3 text-slate-400 hover:text-red-500 font-bold">✕</button>
+          <h3 class="text-sm font-black text-slate-800 text-center mb-1">لوحة التحكم 🔐</h3>
+          <input type="password" x-model="adminPasswordInput" placeholder="كلمة السر..." class="w-full bg-slate-50 border-2 border-blue-200 rounded-2xl px-3 py-2 text-xs font-bold outline-none mb-3 text-center"/>
+          <button @click="verifyAdminPassword()" class="w-full bg-blue-500 text-white font-black text-xs py-2.5 rounded-xl shadow">دخول 🔑</button>
+        </div>
+      </div>
+
+      <footer class="mt-2 text-center text-[11px] font-bold text-slate-400"><span>تطبيق اختبارات عامة</span></footer>
+    </div>
+  </main>
+
+  <script>
+    const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxVwTVE--IVMXa1r8fl24GdZBPVJYUnJmIxZDMQVpxmTJnIl3Z5gQAo50gm0-MGzuIQMQ/exec";
+
+    function playQuizApp() {
+      return {
+        loading: true,
+        errorMessage: '',
+        step: 'welcome',
+        submitted: false,
+        sendingResult: false,
+        isAdmin: false,
+        showAdminModal: false,
+        adminPasswordInput: '',
+
+        owner: { idP: '', name: '', gender: '', photoUrl: '', accountStatus: '' },
+        questions: [],
+        leaderboard: [],
+        
+        player: { idU: '', name: '', gender: '', message: '', photoBase64: '', photoPreview: '' },
+
+        currentQIndex: 0,
+        selectedOption: null,
+        totalScore: 0,
+        correctAnswersCount: 0,
+        percentage: 0,
+
+        get currentQuestion() { return this.questions[this.currentQIndex] || { text: '', options: [] }; },
+
+        async initData() {
+          const urlParams = new URLSearchParams(window.location.search);
+          const quizId = urlParams.get('quizId');
+          if (!quizId) { this.errorMessage = "رمز الاختبار غير موجود!"; this.loading = false; return; }
+
+          try {
+            let res = await fetch(`${GOOGLE_WEB_APP_URL}?quizId=${encodeURIComponent(quizId)}`);
+            let data = await res.json();
+            if (data.status === "success") {
+              this.owner = data.person;
+              this.questions = data.questions;
+              this.leaderboard = data.leaderboard || [];
+            } else {
+              this.errorMessage = data.message;
+            }
+          } catch (e) {
+            this.errorMessage = "خطأ في الاتصال بالسيرفر!";
+          } finally {
+            this.loading = false;
+          }
+        },
+
+        handlePlayerPhoto(e) {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              this.player.photoPreview = ev.target.result;
+              this.player.photoBase64 = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+          }
+        },
+
+        startQuiz() {
+          this.submitted = true;
+          if (!this.player.name.trim() || !this.player.gender) return;
+          this.player.idU = 'U_' + Math.random().toString(36).substring(2, 9).toUpperCase();
+          this.step = 'playing';
+        },
+
+        selectOption(opt) { this.selectedOption = opt; },
+
+        async nextQuestion() {
+          if (!this.selectedOption) return;
+          this.totalScore += Number(this.selectedOption.score || 0);
+          if (this.selectedOption.isCorrect === 'صح') this.correctAnswersCount++;
+
+          if (this.currentQIndex < this.questions.length - 1) {
+            this.currentQIndex++;
+            this.selectedOption = null;
+          } else {
+            this.percentage = Math.round((this.correctAnswersCount / this.questions.length) * 100);
+            await this.submitPlayerResult();
+            this.step = 'result';
+          }
+        },
+
+        async submitPlayerResult() {
+          this.sendingResult = true;
+          const payload = {
+            action: 'submitUserResult',
+            ID_P: this.owner.idP,
+            ID_U: this.player.idU,
+            الاسم: this.player.name,
+            النوع: this.player.gender,
+            الدرجة: this.correctAnswersCount,
+            مجموع_الدرجات: this.totalScore,
+            النسبة: this.percentage + '%',
+            رسالة_الممتحن: this.player.message,
+            photoBase64: this.player.photoBase64
+          };
+
+          try {
+            let res = await fetch(GOOGLE_WEB_APP_URL, { method: 'POST', body: JSON.stringify(payload) });
+            let data = await res.json();
+            if (data.status === 'success' && data.leaderboard) this.leaderboard = data.leaderboard;
+          } catch (e) {
+            console.error(e);
+          } finally {
+            this.sendingResult = false;
+          }
+        },
+
+        toggleAdminModal() {
+          if (this.isAdmin) { this.isAdmin = false; alert("تم إغلاق الإدارة."); } 
+          else { this.adminPasswordInput = ''; this.showAdminModal = true; }
+        },
+
+        async verifyAdminPassword() {
+          if (!this.adminPasswordInput) return;
+          try {
+            let res = await fetch(`${GOOGLE_WEB_APP_URL}?action=verifyAdmin&quizId=${this.owner.idP}&pass=${encodeURIComponent(this.adminPasswordInput)}`);
+            let data = await res.json();
+            if (data.status === 'success' && data.isValid) {
+              this.isAdmin = true;
+              this.showAdminModal = false;
+              alert("تم تفعيل وضع التحكم بنجاح! 🔑");
+            } else { alert("كلمة السر غير صحيحة!"); }
+          } catch (e) { alert("خطأ في الاتصال!"); }
+        },
+
+        async deleteUserResult(idU) {
+          if (!confirm("هل أنت متأكد من الحذف؟")) return;
+          try {
+            let res = await fetch(GOOGLE_WEB_APP_URL, {
+              method: 'POST',
+              body: JSON.stringify({ action: 'deleteUserResult', ID_P: this.owner.idP, ID_U: idU, adminPass: this.adminPasswordInput })
+            });
+            let data = await res.json();
+            if (data.status === 'success') {
+              this.leaderboard = this.leaderboard.filter(u => u.ID_U !== idU);
+              alert("تمت الإزالة بنجاح!");
+            }
+          } catch (e) { alert("خطأ أثناء الحذف!"); }
+        }
+      }
+    }
+  </script>
+</body>
+</html>

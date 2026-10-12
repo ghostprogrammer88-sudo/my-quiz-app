@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>إنشاء وإدارة الاختبار 🐾</title>
+  
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700;800;900&family=Tajawal:wght@500;700;900&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  
+  <!-- Font Awesome Icons -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  
+  <!-- Alpine.js -->
+  <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              blue: '#3b82f6',
+              sky: '#e0f2fe',
+              brightBlue: '#0088ff',
+              pink: '#ff6b8b',
+              yellow: '#facc15',
+              dark: '#1e293b'
+            }
+          },
+          fontFamily: {
+            cairo: ['Cairo', 'sans-serif'],
+            tajawal: ['Tajawal', 'sans-serif']
+          },
+          boxShadow: {
+            '3d': '0px 6px 0px 0px #1d4ed8',
+            '3d-pink': '0px 6px 0px 0px #be185d',
+            '3d-green': '0px 6px 0px 0px #15803d',
+            '3d-yellow': '0px 6px 0px 0px #d97706',
+            'note': '3px 5px 15px rgba(0,0,0,0.08)'
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      font-family: 'Cairo', 'Tajawal', sans-serif;
+      background: linear-gradient(180deg, #dbeafe 0%, #eff6ff 50%, #e0f2fe 100%);
+      min-height: 100vh;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+      overflow-x: hidden;
+    }
+
+    .bg-clouds {
+      background-image: 
+        radial-gradient(circle at 10% 10%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 25%),
+        radial-gradient(circle at 90% 20%, rgba(255, 255, 255, 0.9) 0%, rgba(255, 255, 255, 0) 30%),
+        radial-gradient(circle at 50% 85%, rgba(255, 255, 255, 0.8) 0%, rgba(255, 255, 255, 0) 35%);
+    }
+
+    .sticky-note {
+      background: #ffffff;
+      border-radius: 28px;
+      position: relative;
+      border: 3px solid #bfdbfe;
+    }
+
+    .tape-pink {
+      position: absolute;
+      top: -14px;
+      right: 35px;
+      width: 90px;
+      height: 28px;
+      background: rgba(255, 110, 140, 0.65);
+      transform: rotate(-4deg);
+      border-radius: 4px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+      z-index: 10;
+    }
+
+    .speech-bubble {
+      position: relative;
+      background: #ffffff;
+      border-radius: 24px;
+      border: 3px solid #3b82f6;
+      box-shadow: 0 8px 20px rgba(59, 130, 246, 0.15);
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translateY(0px) rotate(0deg); }
+      50% { transform: translateY(-8px) rotate(1deg); }
+    }
+    .animate-float {
+      animation: float 4s ease-in-out infinite;
+    }
+
+    @keyframes shake {
+      0%, 100% { transform: translateX(0); }
+      20%, 60% { transform: translateX(-4px); }
+      40%, 80% { transform: translateX(4px); }
+    }
+    .shake-it {
+      animation: shake 0.3s ease-in-out;
+    }
+
+    @keyframes particleUp {
+      0% { opacity: 1; transform: translate(0, 0) scale(0.6) rotate(0deg); }
+      100% { opacity: 0; transform: translate(var(--tx), var(--ty)) scale(1.4) rotate(360deg); }
+    }
+    .floating-particle {
+      position: fixed;
+      pointer-events: none;
+      animation: particleUp 0.8s forwards ease-out;
+      z-index: 9999;
+      font-size: 20px;
+    }
+
+    .active-btn:active {
+      transform: translateY(4px);
+    }
+
+    .angry-border {
+      border-color: #ef4444 !important;
+      background-color: #fef2f2 !important;
+      box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.3) !important;
+    }
+  </style>
+</head>
+
+<body class="bg-clouds flex justify-center items-center min-h-screen p-2 sm:p-4 text-slate-800" x-data="quizApp()">
+
+  <!-- Background Decorative Icons -->
+  <div class="fixed inset-0 pointer-events-none overflow-hidden z-0">
+    <i class="fa-solid fa-star text-yellow-300 text-2xl absolute top-6 right-8 animate-pulse"></i>
+    <i class="fa-solid fa-cloud text-white/80 text-5xl absolute top-12 left-6 animate-float"></i>
+    <i class="fa-solid fa-heart text-pink-300 text-xl absolute top-1/3 left-4 opacity-70"></i>
+    <i class="fa-solid fa-paw text-blue-200 text-3xl absolute bottom-10 right-8 rotate-12"></i>
+  </div>
+
+  <!-- Main Container -->
+  <main class="w-full max-w-md bg-sky-50/80 backdrop-blur-md rounded-[36px] border-4 border-white shadow-2xl p-4 sm:p-6 relative z-10 my-auto flex flex-col justify-between min-h-[620px]">
+
+    <!-- Header Mascot -->
+    <div>
+      <div class="flex items-center justify-between mb-2">
+        <div class="speech-bubble p-3 sm:p-4 flex-1 ml-2 relative">
+          <h1 class="text-lg sm:text-xl font-extrabold text-slate-800 text-center leading-snug">
+            <span x-text="step === 'prep' ? 'تحضير الاختبار' : (step === 'questions' ? 'إضافة الأسئلة' : 'تم الإنشاء')"></span> 🐾
+          </h1>
+        </div>
+
+        <!-- الدبدوب (Bill The Bear) الأصلي -->
+        <div class="relative w-20 h-20 flex-shrink-0 animate-float">
+          <div class="w-20 h-20 bg-white rounded-full border-3 border-blue-400 p-1 shadow-md flex items-center justify-center overflow-hidden">
+            <img src="https://media2.giphy.com/media/v1.Y2lkPTc5MGI3NjExeW12cnJvYXVhd25oZmVpY2FrZ2s1Y3JtMmgxa28xdXN1amNwdms5ayZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/Dgj0Z6ATEekzpYH3YY/giphy.gif" alt="Bill The Bear" class="w-full h-full object-cover">
+          </div>
+          <span class="absolute -bottom-1 -left-1 bg-yellow-400 text-xs px-1.5 py-0.5 rounded-full font-bold shadow text-slate-800" x-text="step === 'prep' ? '✨ Step 1' : '📝 Step 2'">
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== STEP 1: PREPARATION FORM ==================== -->
+    <div x-show="step === 'prep'" class="py-2">
+      <div class="sticky-note p-5 my-2 shadow-note relative" :class="{'shake-it': activeShake}">
+        <div class="tape-pink"></div>
+        
+        <div class="text-center mt-1 mb-4">
+          <span class="bg-yellow-300 text-slate-900 font-extrabold px-3 py-1 rounded-md text-xs inline-block transform -rotate-1 mb-1">
+            بيانات صاحب الاختبار 📝
+          </span>
+          <p class="text-xs text-slate-500 font-medium">أدخل جميع البيانات الإلزامية للمتابعة</p>
+        </div>
+
+        <div class="space-y-3">
+          <!-- 1. الاسم -->
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="block text-xs font-bold text-slate-600">
+                <i class="fa-solid fa-user text-blue-500 ml-1"></i> الاسم: <span class="text-red-500">*</span>
+              </label>
+              <span x-show="submitted && !person.name.trim()" class="text-xs text-red-500 font-bold animate-bounce flex items-center gap-1">
+                <span>😡 مطلوب!</span>
+              </span>
+            </div>
+            <input 
+              type="text" 
+              x-model="person.name" 
+              @input="triggerEffect($event, 'pencil')"
+              placeholder="مثال: ريمون..." 
+              :class="{'angry-border': submitted && !person.name.trim()}"
+              class="w-full bg-slate-50 border-2 border-blue-200 focus:border-blue-500 focus:bg-white rounded-2xl px-4 py-2 font-bold text-slate-800 outline-none transition-all placeholder:text-slate-300 text-sm"
+            />
+          </div>
+
+          <!-- 2. كلمة السر -->
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="block text-xs font-bold text-slate-600">
+                <i class="fa-solid fa-key text-blue-500 ml-1"></i> كلمة السر: <span class="text-red-500">*</span>
+              </label>
+              <span x-show="submitted && !person.password" class="text-xs text-red-500 font-bold animate-bounce flex items-center gap-1">
+                <span>😡 اكتب كلمة السر!</span>
+              </span>
+            </div>
+            <div class="relative">
+              <input 
+                :type="showPassword ? 'text' : 'password'" 
+                x-model="person.password" 
+                @input="triggerEffect($event, 'lock')"
+                placeholder="أدخل كلمة السر..." 
+                :class="{'angry-border': submitted && !person.password}"
+                class="w-full bg-slate-50 border-2 border-blue-200 focus:border-blue-500 focus:bg-white rounded-2xl pl-10 pr-4 py-2 font-bold text-slate-800 outline-none transition-all placeholder:text-slate-300 text-sm"
+              />
+              <button 
+                type="button" 
+                @click="showPassword = !showPassword" 
+                class="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-blue-500">
+                <i :class="showPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- 3. تأكيد كلمة السر -->
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="block text-xs font-bold text-slate-600">
+                <i class="fa-solid fa-lock text-blue-500 ml-1"></i> تأكيد كلمة السر: <span class="text-red-500">*</span>
+              </label>
+              <span x-show="submitted && (!person.confirmPassword || person.password !== person.confirmPassword)" class="text-xs text-red-500 font-bold animate-bounce flex items-center gap-1">
+                <span>😡 غير متطابقة!</span>
+              </span>
+            </div>
+            <div class="relative">
+              <input 
+                :type="showConfirmPassword ? 'text' : 'password'" 
+                x-model="person.confirmPassword" 
+                @input="triggerEffect($event, 'lock')"
+                placeholder="أعد كتابة كلمة السر..." 
+                :class="{'angry-border': submitted && (!person.confirmPassword || person.password !== person.confirmPassword)}"
+                class="w-full bg-slate-50 border-2 border-blue-200 focus:border-blue-500 focus:bg-white rounded-2xl pl-10 pr-4 py-2 font-bold text-slate-800 outline-none transition-all placeholder:text-slate-300 text-sm"
+              />
+              <button 
+                type="button" 
+                @click="showConfirmPassword = !showConfirmPassword" 
+                class="absolute left-3 top-1/2 transform -translate-y-1/2 text-slate-400 hover:text-blue-500">
+                <i :class="showConfirmPassword ? 'fa-solid fa-eye-slash' : 'fa-solid fa-eye'"></i>
+              </button>
+            </div>
+          </div>
+
+          <!-- 4. النوع -->
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="block text-xs font-bold text-slate-600">
+                <i class="fa-solid fa-venus-mars text-blue-500 ml-1"></i> النوع: <span class="text-red-500">*</span>
+              </label>
+              <span x-show="submitted && !person.gender" class="text-xs text-red-500 font-bold animate-bounce flex items-center gap-1">
+                <span>😡 اختار النوع!</span>
+              </span>
+            </div>
+            <div class="grid grid-cols-2 gap-2 p-1 rounded-2xl transition-all" :class="{'angry-border': submitted && !person.gender}">
+              <button 
+                type="button"
+                @click="selectGender('ولد', $event)" 
+                :class="person.gender === 'ولد' ? 'bg-blue-500 text-white border-blue-600 shadow' : 'bg-slate-50 text-slate-600 border-slate-200'"
+                class="py-1.5 px-3 rounded-xl font-extrabold text-xs border-2 transition-all flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-mars"></i> ولد
+              </button>
+              <button 
+                type="button"
+                @click="selectGender('بنت', $event)" 
+                :class="person.gender === 'بنت' ? 'bg-pink-500 text-white border-pink-600 shadow' : 'bg-slate-50 text-slate-600 border-slate-200'"
+                class="py-1.5 px-3 rounded-xl font-extrabold text-xs border-2 transition-all flex items-center justify-center gap-1.5">
+                <i class="fa-solid fa-venus"></i> بنت
+              </button>
+            </div>
+          </div>
+
+          <!-- 5. حالة الحساب -->
+          <div>
+            <div class="flex justify-between items-center mb-1">
+              <label class="block text-xs font-bold text-slate-600">
+                <i class="fa-solid fa-shield-halved text-blue-500 ml-1"></i> حالة الحساب والخصوصية: <span class="text-red-500">*</span>
+              </label>
+              <span x-show="submitted && !person.accountStatus" class="text-xs text-red-500 font-bold animate-bounce flex items-center gap-1">
+                <span>😡 اختار حالة الحساب!</span>
+              </span>
+            </div>
+            <select 
+              x-model="person.accountStatus" 
+              @change="playTypeSound()"
+              :class="{'angry-border': submitted && !person.accountStatus}"
+              class="w-full bg-slate-50 border-2 border-blue-200 focus:border-blue-500 focus:bg-white rounded-2xl px-3 py-2 font-bold text-xs text-slate-800 outline-none transition-all">
+              <option value="" disabled selected>-- اختر حالة الحساب --</option>
+              <option value="الناس كلها تشوف النتائج">الناس كلها تشوف النتائج 🌍</option>
+              <option value="ماحدش يشوف نتائج">محدش يشوف النتائج غيري 🔒</option>
+            </select>
+          </div>
+
+          <!-- 6. صورة شخصية -->
+          <div>
+            <label class="block text-xs font-bold text-slate-600 mb-1">
+              <i class="fa-solid fa-image text-blue-500 ml-1"></i> صورة شخصية: <span class="text-slate-400 font-normal">(اختياري)</span>
+            </label>
+            <div class="flex items-center gap-3 bg-slate-50 p-1.5 border-2 border-blue-200 rounded-2xl">
+              <div class="w-10 h-10 bg-slate-200 rounded-xl overflow-hidden flex items-center justify-center border text-slate-400 flex-shrink-0">
+                <template x-if="person.photoPreview">
+                  <img :src="person.photoPreview" class="w-full h-full object-cover">
+                </template>
+                <template x-if="!person.photoPreview">
+                  <i class="fa-solid fa-camera text-base"></i>
+                </template>
+              </div>
+              <input type="file" @change="handleImageUpload($event)" accept="image/*" class="text-xs text-slate-500 file:mr-2 file:py-1 file:px-2.5 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-blue-100 file:text-blue-700 hover:file:bg-blue-200"/>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Next Button -->
+      <button 
+        @click="validatePrepAndGoNext()" 
+        class="w-full bg-brand-brightBlue text-white font-black text-lg py-3.5 rounded-2xl shadow-3d active-btn hover:bg-blue-600 transition-all flex items-center justify-center gap-2 mt-3">
+        <span>التالي: إضافة الأسئلة</span>
+        <i class="fa-solid fa-arrow-left text-base"></i>
+      </button>
+    </div>
+
+    <!-- ==================== STEP 2: ADD QUESTIONS SECTION ==================== -->
+    <div x-show="step === 'questions'" x-cloak x-transition:enter="transition ease-out duration-300" class="py-2">
+      
+      <!-- 🎨 كارت التصفح بالأسئلة المقترحة -->
+      <div class="bg-amber-100/90 border-2 border-amber-300 rounded-2xl p-3 mb-3 shadow-sm space-y-2">
+        <div class="flex items-center justify-between text-xs font-black text-amber-900">
+          <span class="flex items-center gap-1.5">
+            <i class="fa-solid fa-lightbulb text-amber-500 animate-pulse text-sm"></i>
+            <span>تصفح الأسئلة المقترحة</span>
+          </span>
+          <span class="bg-amber-200 text-amber-900 px-2 py-0.5 rounded-lg text-[11px]">
+            السؤال رقم <span x-text="suggestedPointer + 1"></span>
+          </span>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2 pt-1">
+          <button 
+            @click="fetchSuggestedByOffset(-1)" 
+            :disabled="fetchingPrev || fetchingNext || suggestedPointer <= 0"
+            :class="suggestedPointer <= 0 ? 'opacity-40 cursor-not-allowed bg-amber-200' : 'bg-amber-300 hover:bg-amber-400 active-btn border-b-2 border-amber-500'"
+            class="text-amber-950 font-black text-xs py-2 rounded-xl transition-all flex items-center justify-center gap-1.5">
+            <template x-if="!fetchingPrev">
+              <div class="flex items-center gap-1.5">
+                <i class="fa-solid fa-arrow-right"></i>
+                <span>السابق</span>
+              </div>
+            </template>
+            <template x-if="fetchingPrev">
+              <i class="fa-solid fa-spinner fa-spin"></i>
+            </template>
+          </button>
+
+          <button 
+            @click="fetchSuggestedByOffset(1)" 
+            :disabled="fetchingPrev || fetchingNext"
+            class="bg-amber-400 hover:bg-amber-500 text-amber-950 font-black text-xs py-2 rounded-xl active-btn transition-all flex items-center justify-center gap-1.5 border-b-2 border-amber-600 shadow-sm">
+            <template x-if="!fetchingNext">
+              <div class="flex items-center gap-1.5">
+                <span>التالي</span>
+                <i class="fa-solid fa-arrow-left"></i>
+              </div>
+            </template>
+            <template x-if="fetchingNext">
+              <i class="fa-solid fa-spinner fa-spin"></i>
+            </template>
+          </button>
+        </div>
+      </div>
+
+      <!-- 📊 عداد الأسئلة المضافة حالياً -->
+      <div class="bg-white border-2 border-blue-300 rounded-2xl p-3 mb-3 flex items-center justify-between shadow-sm">
+        <div class="flex items-center gap-2">
+          <span class="w-8 h-8 rounded-full bg-blue-500 text-white font-black flex items-center justify-center text-sm" x-text="questionsList.length + 1"></span>
+          <span class="font-extrabold text-slate-700 text-xs sm:text-sm">السؤال الحالي</span>
+        </div>
+        <div class="bg-sky-100 text-blue-800 text-xs font-black px-3 py-1 rounded-xl text-center">
+          <div>إجمالي المضاف: <span class="text-pink-600 text-sm" x-text="questionsList.length"></span></div>
+          <div class="text-slate-400 font-normal text-[10px]">(الحد الأدنى 2)</div>
+        </div>
+      </div>
+
+      <!-- 📝 كارت السؤال والخيارات -->
+      <div class="sticky-note p-4 my-2 shadow-note relative" :class="{'shake-it': activeShake}">
+        <div class="tape-pink"></div>
+
+        <!-- نص السؤال -->
+        <div class="mb-3">
+          <label class="block text-xs font-black text-slate-700 mb-1">
+            <i class="fa-solid fa-circle-question text-blue-500 ml-1"></i> نص السؤال:
+          </label>
+          <textarea 
+            x-model="currentQuestion.text" 
+            @input="triggerEffect($event, 'pencil')"
+            rows="3" 
+            placeholder="اكتب السؤال هنا أو تصفح الأزرار في الأعلى..." 
+            class="w-full bg-slate-50 border-2 border-blue-200 focus:border-blue-500 focus:bg-white rounded-2xl p-3 font-bold text-slate-800 text-xs sm:text-sm outline-none resize-none"
+          ></textarea>
+        </div>
+
+        <!-- إرفاق ميديا السؤال -->
+        <div class="grid grid-cols-3 gap-1.5 mb-4">
+          <label class="cursor-pointer bg-slate-100 hover:bg-blue-50 border border-slate-200 rounded-xl p-2 text-center text-[11px] font-bold text-slate-600 flex flex-col items-center gap-1">
+            <i class="fa-solid fa-image text-blue-500 text-sm"></i>
+            <span x-text="currentQuestion.photoBase64 ? 'تم إرفاق صورة' : 'صورة السؤال'"></span>
+            <input type="file" accept="image/*" class="hidden" @change="handleQuestionMedia($event, 'photo')">
+          </label>
+
+          <label class="cursor-pointer bg-slate-100 hover:bg-purple-50 border border-slate-200 rounded-xl p-2 text-center text-[11px] font-bold text-slate-600 flex flex-col items-center gap-1">
+            <i class="fa-solid fa-music text-purple-500 text-sm"></i>
+            <span x-text="currentQuestion.audioBase64 ? 'تم إرفاق صوت' : 'صوت السؤال'"></span>
+            <input type="file" accept="audio/*" class="hidden" @change="handleQuestionMedia($event, 'audio')">
+          </label>
+
+          <label class="cursor-pointer bg-slate-100 hover:bg-pink-50 border border-slate-200 rounded-xl p-2 text-center text-[11px] font-bold text-slate-600 flex flex-col items-center gap-1">
+            <i class="fa-solid fa-video text-pink-500 text-sm"></i>
+            <span x-text="currentQuestion.videoBase64 ? 'تم إرفاق فيديو' : 'فيديو السؤال'"></span>
+            <input type="file" accept="video/*" class="hidden" @change="handleQuestionMedia($event, 'video')">
+          </label>
+        </div>
+
+        <!-- قائمة الإجابات -->
+        <div class="space-y-2.5 mb-3">
+          <label class="block text-xs font-black text-slate-700">
+            <i class="fa-solid fa-list-check text-blue-500 ml-1"></i> الإجابات والدرجات التلقائية:
+          </label>
+
+          <template x-for="(option, idx) in currentQuestion.options" :key="idx">
+            <div class="bg-slate-50 p-2 border-2 border-slate-200 rounded-2xl space-y-2">
+              
+              <div class="flex items-start gap-1.5">
+                <textarea 
+                  x-model="option.text" 
+                  @input="triggerEffect($event, 'pencil')"
+                  rows="2"
+                  :placeholder="'الإجابة ' + (idx + 1)" 
+                  class="flex-1 bg-white border border-slate-200 rounded-xl px-2.5 py-1.5 text-xs font-bold outline-none text-slate-800 resize-y min-h-[42px]"
+                ></textarea>
+
+                <button 
+                  type="button" 
+                  @click="toggleOptionCorrectness(idx, $event)"
+                  :class="option.isCorrect === 'صح' ? 'bg-emerald-500 text-white' : 'bg-rose-500 text-white'"
+                  class="px-2.5 py-2 rounded-xl font-black text-xs transition-all flex items-center gap-1 shadow-sm mt-0.5">
+                  <i :class="option.isCorrect === 'صح' ? 'fa-solid fa-check' : 'fa-solid fa-xmark'"></i>
+                  <span x-text="option.isCorrect"></span>
+                </button>
+
+                <button 
+                  type="button" 
+                  x-show="currentQuestion.options.length > 2" 
+                  @click="removeOption(idx)" 
+                  class="w-7 h-7 bg-red-100 text-red-600 rounded-xl font-bold text-xs hover:bg-red-200 flex items-center justify-center flex-shrink-0 mt-0.5">
+                  ✕
+                </button>
+              </div>
+
+              <div class="flex items-center justify-between gap-2 pt-1 border-t border-slate-200/60 text-[11px]">
+                <label class="cursor-pointer text-blue-600 font-bold flex items-center gap-1 hover:underline">
+                  <i class="fa-solid fa-camera"></i>
+                  <span x-text="option.photoBase64 ? 'تم اختيار صورة' : 'صورة للإجابة'"></span>
+                  <input type="file" accept="image/*" class="hidden" @change="handleOptionImage($event, idx)">
+                </label>
+
+                <div class="flex items-center gap-1">
+                  <span class="font-bold text-slate-500">الدرجة:</span>
+                  <input 
+                    type="number" 
+                    x-model.number="option.score" 
+                    @input="playTypeSound()"
+                    class="w-14 bg-white border border-slate-300 rounded-lg px-1.5 py-0.5 text-center font-bold text-slate-800 text-xs outline-none"
+                  />
+                </div>
+              </div>
+
+            </div>
+          </template>
+        </div>
+
+        <button 
+          type="button" 
+          @click="addOption()" 
+          class="w-full bg-sky-100 hover:bg-sky-200 text-blue-700 font-extrabold text-xs py-2 rounded-xl border-2 border-dashed border-blue-300 transition-all flex items-center justify-center gap-1.5">
+          <i class="fa-solid fa-plus"></i>
+          <span>إضافة إجابة أخرى</span>
+        </button>
+      </div>
+
+      <!-- الأزرار -->
+      <div class="space-y-2 mt-3">
+        <button 
+          @click="saveAndAddAnotherQuestion()" 
+          :disabled="!isCurrentQuestionValid()"
+          :class="!isCurrentQuestionValid() ? 'opacity-50 cursor-not-allowed' : 'active-btn hover:bg-blue-600'"
+          class="w-full bg-brand-brightBlue text-white font-black text-base py-3 rounded-2xl shadow-3d transition-all flex items-center justify-center gap-2">
+          <i class="fa-solid fa-plus-circle"></i>
+          <span>تسجيل السؤال والتالي 📌</span>
+        </button>
+
+        <button 
+          @click="finishAllAndSubmit()" 
+          :disabled="loading || (getTotalValidQuestionsCount() < 2)"
+          :class="(loading || getTotalValidQuestionsCount() < 2) ? 'opacity-50 cursor-not-allowed' : 'active-btn hover:bg-emerald-600'"
+          class="w-full bg-emerald-500 text-white font-black text-base py-3.5 rounded-2xl shadow-3d-green transition-all flex items-center justify-center gap-2">
+          <template x-if="!loading">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-cloud-arrow-up"></i>
+              <span>إنهاء وتأكيد الاختبار 🎯</span>
+            </div>
+          </template>
+          <template x-if="loading">
+            <div class="flex items-center gap-2">
+              <i class="fa-solid fa-spinner fa-spin"></i>
+              <span>جاري رفع ونشر الاختبار...</span>
+            </div>
+          </template>
+        </button>
+      </div>
+    </div>
+
+    <!-- خطوة النجاح -->
+    <div x-show="step === 'finished'" x-cloak class="py-4 text-center">
+      <div class="sticky-note p-6 my-4 shadow-note">
+        <i class="fa-solid fa-circle-check text-green-500 text-5xl mb-3 animate-bounce"></i>
+        <h2 class="text-xl font-extrabold text-slate-800 mb-1">تم حفظ ونشر جميع البيانات والأسئلة!</h2>
+        <p class="text-xs text-slate-500 mb-3">إجمالي الأسئلة المسجلة: <span class="font-bold text-blue-600" x-text="questionsList.length"></span></p>
+
+        <div class="bg-blue-50 p-3 rounded-2xl border border-blue-200 text-xs font-mono break-all text-blue-700 text-right space-y-1">
+          <div><strong>معرف الشخص (ID_P):</strong> <span x-text="person.idP"></span></div>
+          <div><strong>رابط الاختبار الفريد (URL):</strong></div>
+          <span x-text="person.uniqueUrl" class="text-slate-800 select-all font-bold block bg-white p-2 rounded-xl border border-blue-100 mt-1"></span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Footer Credit -->
+    <footer class="mt-2 text-center text-[11px] font-bold text-slate-400">
+      <span>تطبيق اختبارات عامة</span> • <span>المرحلة الثانية</span>
+    </footer>
+
+  </main>
+
+  <script>
+    const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbxVwTVE--IVMXa1r8fl24GdZBPVJYUnJmIxZDMQVpxmTJnIl3Z5gQAo50gm0-MGzuIQMQ/exec";
+
+    function quizApp() {
+      return {
+        step: 'prep',
+        showPassword: false,
+        showConfirmPassword: false,
+        submitted: false,
+        loading: false,
+        
+        fetchingPrev: false,
+        fetchingNext: false,
+        activeShake: false,
+
+        suggestedPointer: 0, 
+        addedIndices: [], 
+        addedQuestionTexts: [], 
+
+        person: {
+          idP: '',
+          name: '',
+          password: '',
+          confirmPassword: '',
+          gender: '',
+          accountStatus: '',
+          photoBase64: '',
+          photoPreview: '',
+          uniqueUrl: ''
+        },
+
+        questionsList: [],
+
+        currentQuestion: {
+          idQ: '',
+          text: '',
+          photoBase64: '',
+          audioBase64: '',
+          videoBase64: '',
+          options: [
+            { text: '', isCorrect: 'صح', photoBase64: '', score: 1 },
+            { text: '', isCorrect: 'غلط', photoBase64: '', score: 0 }
+          ]
+        },
+
+        playTypeSound() {
+          try {
+            const ctx = new (window.AudioContext || window.webkitAudioContext)();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(400, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(120, ctx.currentTime + 0.05);
+            gain.gain.setValueAtTime(0.15, ctx.currentTime);
+            gain.gain.linearRampToValueAtTime(0.01, ctx.currentTime + 0.05);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.05);
+          } catch(e) {}
+        },
+
+        triggerShake() {
+          this.activeShake = true;
+          setTimeout(() => { this.activeShake = false; }, 300);
+        },
+
+        spawnParticles(event, type) {
+          const rect = event.target.getBoundingClientRect();
+          const startX = rect.left + rect.width / 2;
+          const startY = rect.top + rect.height / 2;
+
+          let symbols = ['✏️', '✍️', '📝'];
+          if (type === 'lock') symbols = ['🔒', '🔑', '🛡️'];
+          if (type === 'boy') symbols = ['👦', '💙', '⭐', '🧢'];
+          if (type === 'girl') symbols = ['👧', '💖', '🌸', '🎀'];
+          if (type === 'correct') symbols = ['✅', '⭐', '🎉', '🌟'];
+          if (type === 'wrong') symbols = ['❌', '⚠️', '💥', '💢'];
+
+          for (let i = 0; i < 6; i++) {
+            const el = document.createElement('div');
+            el.className = 'floating-particle';
+            el.innerText = symbols[Math.floor(Math.random() * symbols.length)];
+            
+            const angle = Math.random() * Math.PI * 2;
+            const distance = 40 + Math.random() * 60;
+            const tx = Math.cos(angle) * distance + 'px';
+            const ty = Math.sin(angle) * distance - 20 + 'px';
+
+            el.style.setProperty('--tx', tx);
+            el.style.setProperty('--ty', ty);
+            el.style.left = startX + 'px';
+            el.style.top = startY + 'px';
+
+            document.body.appendChild(el);
+            setTimeout(() => el.remove(), 800);
+          }
+        },
+
+        triggerEffect(event, type) {
+          this.playTypeSound();
+          this.triggerShake();
+          this.spawnParticles(event, type);
+        },
+
+        selectGender(genderVal, event) {
+          this.person.gender = genderVal;
+          this.playTypeSound();
+          this.triggerShake();
+          this.spawnParticles(event, genderVal === 'ولد' ? 'boy' : 'girl');
+        },
+
+        handleImageUpload(e) {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              this.person.photoPreview = ev.target.result;
+              this.person.photoBase64 = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+          }
+          this.playTypeSound();
+        },
+
+        isPrepFormValid() {
+          return (
+            this.person.name.trim() !== '' &&
+            this.person.password !== '' &&
+            this.person.confirmPassword !== '' &&
+            this.person.password === this.person.confirmPassword &&
+            this.person.gender !== '' &&
+            this.person.accountStatus !== ''
+          );
+        },
+
+        validatePrepAndGoNext() {
+          this.submitted = true;
+          if (!this.isPrepFormValid()) return;
+
+          this.playTypeSound();
+          this.person.idP = 'P_' + Math.random().toString(36).substring(2, 9).toUpperCase();
+          
+          // توليد الرابط الفريد موجهاً حصرياً لملف play.html مهما كان مسار الجهاز أو السيرفر
+          const currentPath = window.location.href.substring(0, window.location.href.lastIndexOf('/') + 1);
+          this.person.uniqueUrl = `${currentPath}play.html?quizId=${this.person.idP}`;
+
+          this.step = 'questions';
+          this.fetchSuggestedByOffset(0);
+        },
+
+        async fetchSuggestedByOffset(offset) {
+          let stepDirection = offset >= 0 ? 1 : -1;
+          let newPointer = this.suggestedPointer + offset;
+          if (newPointer < 0) newPointer = 0;
+
+          while (this.addedIndices.includes(newPointer)) {
+            newPointer += stepDirection;
+            if (newPointer < 0) {
+              newPointer = 0;
+              break;
+            }
+          }
+
+          if (offset < 0) this.fetchingPrev = true;
+          else this.fetchingNext = true;
+
+          try {
+            let res = await fetch(`${GOOGLE_WEB_APP_URL}?action=getSuggestedQuestion&index=${newPointer}`, {
+              method: 'GET',
+              redirect: 'follow'
+            });
+
+            let data = await res.json();
+
+            if (data.status === 'success' && data.question) {
+              if (this.addedQuestionTexts.includes(data.question.text.trim())) {
+                this.addedIndices.push(newPointer);
+                this.fetchingPrev = false;
+                this.fetchingNext = false;
+                return this.fetchSuggestedByOffset(stepDirection);
+              }
+
+              this.suggestedPointer = newPointer;
+
+              this.currentQuestion.text = data.question.text || '';
+              this.currentQuestion.photoBase64 = '';
+              this.currentQuestion.audioBase64 = '';
+              this.currentQuestion.videoBase64 = '';
+
+              if (data.question.options && Array.isArray(data.question.options)) {
+                this.currentQuestion.options = data.question.options.map((optText, index) => ({
+                  text: optText,
+                  isCorrect: index === 0 ? 'صح' : 'غلط',
+                  photoBase64: '',
+                  score: index === 0 ? 1 : 0
+                }));
+              }
+            } else if (data.status === 'end') {
+              alert("وصلت لآخر سؤال مقترح في الشيت!");
+            } else {
+              alert("تعذر جلب السؤال المقترح: " + (data.message || ''));
+            }
+          } catch (e) {
+            console.error("خطأ أثناء الاقتراح:", e);
+            alert("حدث خطأ أثناء الاتصال بسيرفر الشيت!");
+          } finally {
+            this.fetchingPrev = false;
+            this.fetchingNext = false;
+          }
+        },
+
+        toggleOptionCorrectness(index, event) {
+          const opt = this.currentQuestion.options[index];
+          if (opt.isCorrect === 'صح') {
+            opt.isCorrect = 'غلط';
+            opt.score = 0;
+            this.spawnParticles(event, 'wrong');
+          } else {
+            opt.isCorrect = 'صح';
+            opt.score = 1;
+            this.spawnParticles(event, 'correct');
+          }
+          this.playTypeSound();
+          this.triggerShake();
+        },
+
+        handleQuestionMedia(e, type) {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              if (type === 'photo') this.currentQuestion.photoBase64 = ev.target.result;
+              if (type === 'audio') this.currentQuestion.audioBase64 = ev.target.result;
+              if (type === 'video') this.currentQuestion.videoBase64 = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+          }
+          this.playTypeSound();
+        },
+
+        handleOptionImage(e, index) {
+          const file = e.target.files[0];
+          if (file) {
+            const reader = new FileReader();
+            reader.onload = (ev) => {
+              this.currentQuestion.options[index].photoBase64 = ev.target.result;
+            };
+            reader.readAsDataURL(file);
+          }
+          this.playTypeSound();
+        },
+
+        addOption() {
+          this.currentQuestion.options.push({ text: '', isCorrect: 'غلط', photoBase64: '', score: 0 });
+          this.playTypeSound();
+        },
+
+        removeOption(index) {
+          if (this.currentQuestion.options.length > 2) {
+            this.currentQuestion.options.splice(index, 1);
+          }
+          this.playTypeSound();
+        },
+
+        isCurrentQuestionValid() {
+          if (!this.currentQuestion.text.trim()) return false;
+          const validOptions = this.currentQuestion.options.filter(o => o.text.trim() !== '');
+          return validOptions.length >= 2;
+        },
+
+        getTotalValidQuestionsCount() {
+          let count = this.questionsList.length;
+          if (this.isCurrentQuestionValid()) {
+            count++;
+          }
+          return count;
+        },
+
+        saveAndAddAnotherQuestion() {
+          if (!this.isCurrentQuestionValid()) return;
+
+          this.playTypeSound();
+          this.currentQuestion.idQ = 'Q_' + Math.random().toString(36).substring(2, 9).toUpperCase();
+          this.questionsList.push(JSON.parse(JSON.stringify(this.currentQuestion)));
+
+          this.addedIndices.push(this.suggestedPointer);
+          this.addedQuestionTexts.push(this.currentQuestion.text.trim());
+
+          this.currentQuestion = {
+            idQ: '',
+            text: '',
+            photoBase64: '',
+            audioBase64: '',
+            videoBase64: '',
+            options: [
+              { text: '', isCorrect: 'صح', photoBase64: '', score: 1 },
+              { text: '', isCorrect: 'غلط', photoBase64: '', score: 0 }
+            ]
+          };
+
+          this.fetchSuggestedByOffset(1);
+        },
+
+        async finishAllAndSubmit() {
+          if (this.isCurrentQuestionValid()) {
+            this.saveAndAddAnotherQuestion();
+          }
+
+          if (this.questionsList.length < 2) {
+            alert("⚠️ يجب أن يحتوي الاختبار على سؤالين على الأقل للإنشاء!");
+            return;
+          }
+
+          this.loading = true;
+
+          const payload = {
+            ...this.person,
+            questions: this.questionsList
+          };
+
+          try {
+            let response = await fetch(GOOGLE_WEB_APP_URL, {
+              method: "POST",
+              body: JSON.stringify(payload)
+            });
+
+            let result = await response.json();
+
+            if (result.status === "success") {
+              this.step = 'finished';
+            } else {
+              alert("حدث خطأ أثناء الحفظ: " + result.message);
+            }
+          } catch (err) {
+            alert("تعذر الاتصال بسيرفر الجوجل شيت!");
+            console.error(err);
+          } finally {
+            this.loading = false;
+          }
+        }
+      }
+    }
+  </script>
+</body>
+</html>
